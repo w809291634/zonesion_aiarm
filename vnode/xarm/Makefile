@@ -16,6 +16,7 @@ CFLAGS := -Wall -DSENSOR_TYPE=$(SENSOR_TYPE)  -DNODE_MAC=\"$(NODE_MAC)\"
 
 CFLAGS += -std=c99
 
+# 如果选择调试模式
 ifeq ($(BUILD_VER), DEBUG)
 CFLAGS += -g
 TARGET := vnode-xarmD
@@ -42,7 +43,3 @@ $(TARGET):$(OBJS)
 
 clean:
 	rm -rf $(TARGET) *.o 
-    
-mytest:  
-	@echo OBJS=$(OBJS)
-	@echo CC=$(CC)

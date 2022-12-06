@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import rospy
@@ -25,15 +25,15 @@ import sys
 this = sys.modules[__name__]
 
 this.config_path="/home/zonesion/catkin_ws/src/marm_controller/config/config.yaml"
-with open(config_path, "r") as f:
+with open(this.config_path, "r") as f:
     config = yaml.load(f.read())
 
 grip_query_time=config["grip_query_time"]       #机械臂夹具查询关节位置周期
 grip_wait_time=config["grip_wait_time"]         #机械臂夹具运动超时时间系数
 gripper_arrive_err=config["gripper_arrive_err"] 
 def quit(signum, frame):
-    print ''
-    print 'EXIT APP'
+    print('')
+    print('EXIT APP') 
     sys.exit()
 
 this.arm_joint=[]
@@ -228,16 +228,9 @@ class Arm(object):
 
     def shutdown(self):
         # Exit
-        print "The arm is shutting down."
+        print("The arm is shutting down.") 
         moveit_commander.roscpp_shutdown()
         moveit_commander.os._exit(0)
-
-#拍照位
-arm_cam_joint=[0.11535425216048287, -0.616704188215822, 1.40664924293023, 1.8002512210459807, 0.17097973936214012]
-#放料位
-place_orientation=[0.4082922511955792, 0.3883747732255148, -0.5864623925036405, 0.5818284414796017]
-green_box_pos=[0.104056638643234, -0.15154166501230143, 0.1610305493810666]
-arm_place_joint=[-1.5401102540326523, 0.2780434008584921, 1.5998078696019935, 1.0356559126401998, 0.07418549237673772]
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, quit)                                
