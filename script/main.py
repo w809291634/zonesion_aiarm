@@ -18,6 +18,8 @@ import cvwin
 import threading
 import math
 from geometry_msgs.msg import PoseStamped, Pose
+from std_msgs.msg import String
+from aiarm.srv import *
 import yaml
 this = sys.modules[__name__]
 
@@ -26,24 +28,39 @@ this = sys.modules[__name__]
 ##############################################################################################
 this.config_path="/home/zonesion/catkin_ws/src/marm_controller/config/config.yaml"
 with open(this.config_path, "r") as f:
-    config = yaml.load(f.read())
+    if sys.version_info < (3, 0):
+        config = yaml.load(f.read())
+    else:    
+        config = yaml.load(f.read(), Loader=yaml.FullLoader)
 
 ##############################################################################################
 # 应用配置参数
 ##############################################################################################
-g_open=config["g_open"]                 #机械臂夹具打开角度
-this.arm_mode="varm"                    #
-
+this.g_open=config["g_open"]                    # 机械臂夹具打开角度
+this.arm_mode="xarm"                            # xarm:真实机械臂   varm:虚拟机械臂
 
 from arm import Arm
 class AiArm(Arm):
     def __init__(self,g_open):
-        super(AiArm,self).__init__(g_open,xarm="xarm")          #定义为在arm（3399）端运行此程序。初始化Arm类,定义为"varm"是在虚拟机远程控制
+        super(AiArm,self).__init__(g_open,xarm=this.arm_mode,arm_debug=False)          #定义为在arm（3399）端运行此程序。初始化Arm类,定义为"varm"是在虚拟机远程控制
+        vnodeData_subscriber = threading.Thread(target=self.VnodeData_to_app)
+        vnodeData_subscriber.setDaemon(True)
+        vnodeData_subscriber.start()
 
+    def joint_target_handle(self,data):
+        its = data.joint.split("/")
+        its_rad =[math.radians(float(i)) for i in its]                  #将角度转换为弧度
+        result=self.set_joint_value_target(its_rad)
+        # print("arm joint result:",result)
+        if result:
+            return xarm_jointResponse(xarm_jointResponse.SUCCESS)       # 执行完成
+        else:
+            return xarm_jointResponse(xarm_jointResponse.ERROR)         # 执行失败
 
-def VnodeData_Subscriber():
-    rospy.Subscriber('/arm_controller/follow_joint_trajectory/cancel',GoalID,cmdfu)    #订阅控制板命令,实现机械臂紧急停止
-    rospy.spin()
+    def VnodeData_to_app(self):
+        service_gripper = rospy.Service('/vnode_xarm/joint_target', xarm_joint, self.joint_target_handle)    # 建立服务 等待客户端进行连接
+
+        rospy.spin()
 
 if __name__ == '__main__':
     def quit(signum, frame):
@@ -53,9 +70,8 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, quit)                          
     signal.signal(signal.SIGTERM, quit)
     rospy.init_node("AIARM_NODE", log_level=rospy.INFO)         #初始化节点
-
-    vnodeData_subscriber = threading.Thread(target=VnodeData_Subscriber)
-    vnodeData_subscriber.setDaemon(True)
-    vnodeData_subscriber.start()
+    aiarm=AiArm(this.g_open)
+    while True:
+        time.sleep(5)
 
 

@@ -18,7 +18,6 @@ import signal
 from moveit_simple_grasps.srv import GenerateSolutions
 from marm_controller.srv import *
 #机械臂调试
-arm_debug=False #True False
 
 import yaml
 import sys
@@ -26,7 +25,10 @@ this = sys.modules[__name__]
 
 this.config_path="/home/zonesion/catkin_ws/src/marm_controller/config/config.yaml"
 with open(this.config_path, "r") as f:
-    config = yaml.load(f.read())
+    if sys.version_info < (3, 0):
+        config = yaml.load(f.read())
+    else:    
+        config = yaml.load(f.read(), Loader=yaml.FullLoader)
 
 grip_query_time=config["grip_query_time"]       #机械臂夹具查询关节位置周期
 grip_wait_time=config["grip_wait_time"]         #机械臂夹具运动超时时间系数
@@ -39,7 +41,7 @@ def quit(signum, frame):
 this.arm_joint=[]
 this.arm_res=0
 class Arm(object):
-    def __init__(self,g_open,xarm="varm",gripper_ty=True):
+    def __init__(self,g_open,xarm="varm",gripper_ty=True,arm_debug=False):
         self.arm = MoveGroupCommander("manipulator")
         self.xarm=xarm
         if self.xarm=="varm":
@@ -81,8 +83,10 @@ class Arm(object):
     def __arm_tool_pose(self):
         while True:
             pose=self.getPose()
-            print(pose)
-            time.sleep(0.1)
+            print("pose:%s"%pose)
+            joint=self.get_joints()
+            print("joint:%s"%joint)
+            time.sleep(5)
 
     def all_gohome(self,wait=True):
         self.arm.set_named_target('home')                    #控制机械臂先回到初始化位置
@@ -163,7 +167,7 @@ class Arm(object):
 
     def set_joint_value_target(self,joint_positions):
         self.arm.set_joint_value_target(joint_positions)
-        self.arm.go(True)
+        return self.arm.go(True)
 
     def set_arm_joint_value_target(self,joint_positions):
         joint=self.get_joints()

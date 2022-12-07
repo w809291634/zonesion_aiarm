@@ -134,8 +134,8 @@ int main(int argc, char* argv[])
     sensorInit();
      
     while(1) {
-        sensorPoll();
-        ZXBeePoll(100);
+        sensorPoll();               //传感器数据检查和定期上报
+        ZXBeePoll(100);             //处理智云命令
     }
     return 0;
 }
