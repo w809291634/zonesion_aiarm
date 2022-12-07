@@ -58,19 +58,19 @@ static void* thread_service_proc(void *args)
 // bufsize：命令返回字符缓存
 int ros_service_register(msg_queue_t msg,int bufsize)
 {
-    service_proc_args_t *pa;
+    service_proc_args_t *pa=NULL;
 
 
     FILE *fp = NULL;
  
-     char buf[1000] = { 0 };
+     char buf[128] = { 0 };
  
      if ((fp = popen("ls .", "r")) == NULL){
         perror("popen error");
         return -1;
      }
  
-     while (fgets(buf, 1000, fp) != NULL){
+     while (fgets(buf, 128, fp) != NULL){
         printf("%s", buf);
      }
  
