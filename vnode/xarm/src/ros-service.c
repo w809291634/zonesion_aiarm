@@ -17,49 +17,56 @@
 #include <pthread.h>
 
 #include "ros-service.h"
+#include "../../common/app/zxbee.h"
+#include "../../common/app/zxbee-inf.h"
+#include "../../common/app/util.h"
+
+
+#define DEBUG           0x80                                    // 0x80-仅打印无线数据 0x01-打印所有 0x00-不打印
+
+#if (DEBUG & 0x80)
+#define ERR printf
+#define DEBUG(...)
+#else
+#if (DEBUG & 0x01)
+#define ERR printf
+#define DEBUG printf
+#else
+#define ERR(...)
+#define DEBUG(...)
+#endif
+#endif
 
 static void* thread_service_proc(void *args)
 {
     service_proc_args_t* argv = (service_proc_args_t*)args;
-    long int msgtype = 0;
-        FILE * fp;
-        char buff[128]={0};
+    char* p=NULL;
     while(1){
-        if (msgrcv(argv->msg_queue->msg_id, (void *)&argv->msg_queue->msg_st, MSGBUFSIZE, msgtype, 0) == -1) {
-            fprintf ( stderr, "msgrcv failed width erro: %d\r\n", errno );
+        if (msgrcv(argv->msg_queue->msg_id, (void *)&argv->msg_queue->msg_st, MSGBUFSIZE, 0, 0) == -1) {
+            fprintf(stderr, "msgrcv failed width erro: %d\r\n", errno);
             sleep(1);
         }
-        printf ( "You wrote: %s\r\n", argv->msg_queue->msg_st.text );
-
-        //fp = popen("rosservice call /vnode_xarm/joint_target \"joint: '0/-44/89/89/0'\"", "r");
-        fp = popen("ls", "r");
-        printf("fp is %d\r\n",fp);
-        if (fp == NULL){
-            return -1;
+        if(memcmp(argv->msg_queue->msg_st.text, "rosservice call", 14) == 0){
+            argv->fp = popen(argv->msg_queue->msg_st.text, "r");
+            if (argv->fp == NULL){
+                fprintf(stderr, "popen failed width erro: %d\r\n", errno);
+            }
+            DEBUG("cmd: %s\r\n",argv->msg_queue->msg_st.text);
+            while((fgets(argv->buffer, argv->buflen, argv->fp))!=NULL){
+                DEBUG("argv->buffer %s\r\n",argv->buffer);
+                if(memcmp(argv->buffer, "ERROR:", 6) == 0){
+                    // 执行错误,这里可以定义协议区分具体错误并返回
+                    ERR("argv->buffer %s\r\n",argv->buffer);
+                }else if(memcmp(argv->buffer, "result: 0", 9) == 0){
+                    // 执行成功
+                    ZXBeeBegin();
+                    ZXBeeAdd(argv->tag,argv->e_list[0]);        //成功码
+                    p = ZXBeeEnd();
+                    ZXBeeInfSend(p, strlen(p));
+                }
+            }
+            pclose(argv->fp);
         }
-        while((fgets(buff, 128-1, fp))!=NULL){
-            printf("argv->buffer %s\r\n",buff);
-        }
-
-
-        // if(memcmp(argv->msg_queue->msg_st.text, "rosservice call", 14) == 0){
-        //     printf ( "argv->fp1: %d\r\n", argv->fp );
-        //     argv->fp = popen(argv->msg_queue->msg_st.text, "r");
-        //     printf ( "argv->fp2: %d\r\n", argv->fp );
-        //     if (argv->fp == NULL){
-        //         fprintf ( stderr, "popen failed width erro: %d\r\n", errno );
-
-        //     }
-        //     while((fgets(argv->buffer, argv->buflen, argv->fp))!=NULL){
-        //         printf("argv->buffer %s\r\n",argv->buffer);
-
-
-
-        //     }
-        //     pclose(argv->fp);
-
-        // }
-
     }
     fclose(argv->fp);
     free(argv->buffer);
@@ -68,12 +75,13 @@ static void* thread_service_proc(void *args)
 }
 
 // 处理与机械臂应用程序之间的服务通讯，并向服务器返回处理结果
-// key:消息队列key值
-// bufsize：命令返回字符缓存
-int ros_service_register(msg_queue_t msg,int bufsize)
+// key: 消息队列key值
+// bufsize：命令返回字符缓存大小
+// ptag: 命令对应的关键字
+int ros_service_register(char* ptag,char** list,msg_queue_t msg, int bufsize)
 {
     service_proc_args_t *pa=NULL;
-
+    
     msg->key=ftok( msg->pathname, msg->proj);
     if (msg->key  == -1) {
         fprintf ( stderr, "ftok failed width erro: %d\r\n", errno );
@@ -95,6 +103,8 @@ int ros_service_register(msg_queue_t msg,int bufsize)
     }
     pa->buffer = pb;
     pa->buflen = bufsize;
+    pa->tag = ptag;
+    pa->e_list = list;
     pa->msg_queue = msg;
     pthread_t *pt = malloc(sizeof (pthread_t));
     if (pt == NULL) {

@@ -22,10 +22,12 @@ typedef struct {
     FILE * fp;
     char * buffer;
     unsigned int buflen;
+    char * tag;
+    char** e_list;
 
     msg_queue_t msg_queue;
 } service_proc_args_t;
 
-int ros_service_register(msg_queue_t msg,int bufsize);
+int ros_service_register(char* ptag,char** list,msg_queue_t msg, int bufsize);
 
 #endif

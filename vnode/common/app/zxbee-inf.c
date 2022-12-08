@@ -18,6 +18,7 @@
 #include <sys/epoll.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <pthread.h>
 
 #include "zxbee.h"
 #include "zxbee-inf.h"
@@ -29,7 +30,7 @@ static int sMacLen;
 struct sockaddr_in server_addr;
 
 static int gsk;
-
+static pthread_mutex_t ZXBeemutex = PTHREAD_MUTEX_INITIALIZER;
 /*********************************************************************************************
 * ���ƣ�ZXBeeInfInit
 * ���ܣ�ZXBee�ӿڵײ��ʼ��
@@ -85,7 +86,7 @@ void ZXBeeInfInit(char *mac, char* gwip, int gwport)
 void  ZXBeeInfSend(char *p, int len)
 {
     char buf[1024];
-    
+    pthread_mutex_lock ( &ZXBeemutex );
     int hlen = sprintf(buf, "%s=", sMac);
 #if DEBUG
     printf("<<< %s\n", p);
@@ -99,6 +100,7 @@ void  ZXBeeInfSend(char *p, int len)
 #else
     sendto(gsk, buf, len, 0, (struct sockaddr *)&server_addr, sizeof(server_addr));
 #endif
+    pthread_mutex_unlock ( &ZXBeemutex );
 }
 /*********************************************************************************************
 * ���ƣ�ZXBeeInfRecv

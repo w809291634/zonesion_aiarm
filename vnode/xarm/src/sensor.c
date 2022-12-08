@@ -322,6 +322,14 @@ void updateA1(void)
 //         (xarm_info.sonar4));
 // }
 
+//定义：服务器错误码
+static const char* err_code[]={
+  "0",        //成功，任务结束
+  "1",
+  "2",
+};
+//定义：消息队列路径，名称，消息类型
+static msg_queue joint_cmd={"/home/zonesion/catkin_ws/src/aiarm/tmp",'a',.msg_st.msg_type=1,};
 /*********************************************************************************************
  * 名称：sensorInit()
  * 功能：传感器硬件初始化
@@ -330,7 +338,6 @@ void updateA1(void)
  * 修改：
  * 注释：
  *********************************************************************************************/
-static msg_queue joint_target_cmd={"/home/zonesion/catkin_ws/src/aiarm/tmp",'a',};
 void sensorInit(void)
 {
   // 初始化传感器代码
@@ -340,7 +347,9 @@ void sensorInit(void)
   // ros_topic_register("/xcar/sensors", on_sensor_msg_cb, 128);
   // ros_topic_register("/gps/fix", on_uwb_msg_cb, 128);
   // ros_topic_register("/demo/acar/plate", on_plate_msg_cb, 128);
-  ros_service_register(&joint_target_cmd,128);
+
+  // 注册服务类型
+  ros_service_register("V1",err_code,&joint_cmd,256);
 }
 /*********************************************************************************************
  * 名称：sensorUpdate()
@@ -548,10 +557,9 @@ int ZXBeeUserProcess(char *ptag, char *pval)
     }
     else
     {
-      strcpy(V1, pval);
-      joint_target_cmd.msg_st.msg_type=1;                   //定义消息的类型,接收类型为0时不区分
-      sprintf(joint_target_cmd.msg_st.text,"rosservice call /vnode_xarm/joint_target \"joint: '%s'\"",pval);
-      if(msgsnd(joint_target_cmd.msg_id,(void *)&joint_target_cmd.msg_st,strlen(pval),IPC_NOWAIT)== -1){
+      strcpy(V1, pval);                
+      sprintf(joint_cmd.msg_st.text,"rosservice call /vnode_xarm/joint_target \"joint: '%s'\"",pval);
+      if(msgsnd(joint_cmd.msg_id,(void *)&joint_cmd.msg_st,strlen(pval),IPC_NOWAIT)== -1){
         fprintf ( stderr, "msgsnd failed\r\n" );
       };
     }
