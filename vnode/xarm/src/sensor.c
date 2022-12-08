@@ -36,7 +36,7 @@ static uint8_t D0 = 0x9F;  // 默认打开主动上报功能
 static uint8_t D1 = 0;     // bit0：夹具的开合控制（0张开，1闭合）  bit1：机械臂预置点（0home，1start）
 static char A0[ITEM_SIZE]; // 关节实时位姿  {A0=0/0/0/0/0}               返回5个关节值
 static char A1[ITEM_SIZE]; // 空间实时位姿  {A1=x/y/z/R/P/Y}
-static uint16_t V0 = 1;    // A0~A7上传时间间隔，默认1S
+static uint16_t V0 = 5;    // A0~A7上传时间间隔，默认1S
 static char V1[ITEM_SIZE]; // 查询或者设置机械臂的5个关节值，不含夹具。{V1=0/0/0/0/0}
 static char V2[ITEM_SIZE]; // 查询或者设置机械臂的位姿，RPY表示旋转方向 {V2=x/y/z/R/P/Y}
 static uint8_t V3 = 0;     // 查询或者设置机械臂的夹具 {V3=夹具值}
@@ -103,8 +103,8 @@ static void on_target_joint_msg_cb(unsigned long long tm, char *msg)
     property_set(1, xarm_info.joint1 = atof(p));
     property_set(2, xarm_info.joint2 = atof(p));
     property_set(3, xarm_info.joint3 = atof(p));
-    property_set(5, xarm_info.joint4 = atof(p));
-    property_set(4, xarm_info.joint5 = atof(p));
+    property_set(4, xarm_info.joint4 = atof(p));
+    property_set(5, xarm_info.joint5 = atof(p));
     // printf("joint:%f,%f,%f\r\n",xarm_info.joint1,xarm_info.joint3,xarm_info.joint5);
   }
 }
@@ -168,7 +168,7 @@ void updateV3()
 void updateA0(void)
 {
   //机械臂关节值
-  sprintf(A0, "%.6f/%.6f/%.6f/%.6f/%.6f",
+  sprintf(A0, "%.3f/%.3f/%.3f/%.3f/%.3f",
       xarm_info.joint1,xarm_info.joint2,
       xarm_info.joint3,xarm_info.joint4,
       xarm_info.joint5);
@@ -184,7 +184,7 @@ void updateA0(void)
 void updateA1(void)
 {
   //机械臂空间值
-  sprintf(A1, "%.6f/%.6f/%.6f/%.6f/%.6f/%.6f",
+  sprintf(A1, "%.3f/%.3f/%.3f/%.3f/%.3f/%.3f",
       xarm_info.x,xarm_info.y,
       xarm_info.z,xarm_info.R,
       xarm_info.P,xarm_info.Y);
@@ -227,6 +227,8 @@ static const char* err_code[]={
 //定义：服务名，消息队列路径，名称，超时，消息类型
 static service_obj joint_cmd={"/vnode_xarm/joint_target","/home/zonesion/catkin_ws/src/aiarm/tmp",'a'
 ,.timeout=10,.msg_st.msg_type=1,};
+static service_obj space_cmd={"/vnode_xarm/space_target","/home/zonesion/catkin_ws/src/aiarm/tmp",'b'
+,.timeout=10,.msg_st.msg_type=1,};
 /*********************************************************************************************
  * 名称：sensorInit()
  * 功能：传感器硬件初始化
@@ -242,7 +244,8 @@ void sensorInit(void)
   ros_topic_register("/aiarm/arm_space", on_target_space_msg_cb, 256);
 
   // 注册服务类型
-  ros_service_register("V1",(char **)err_code,&joint_cmd,256);
+  ros_service_register("V1",(char **)err_code,&joint_cmd,128);
+  ros_service_register("V2",(char **)err_code,&space_cmd,128);
 }
 /*********************************************************************************************
  * 名称：sensorUpdate()
@@ -461,12 +464,15 @@ int ZXBeeUserProcess(char *ptag, char *pval)
   {
     if (0 == strcmp("?", pval))
     {
-      // sprintf(p, "%u", V2);
-      // ZXBeeAdd("V2", p);
+      ZXBeeAdd("V2", V2);
     }
     else
     {
-      // strcpy(V2, pval);
+      strcpy(V2, pval);                
+      sprintf(space_cmd.msg_st.text,"rosservice call %s \"space: '%s'\"",space_cmd.service,pval);
+      if(msgsnd(space_cmd.msg_id,(void *)&space_cmd.msg_st,strlen(pval),IPC_NOWAIT)== -1){
+        fprintf ( stderr, "msgsnd failed\r\n" );
+      };
     }
   }
   if (0 == strcmp("V3", ptag))

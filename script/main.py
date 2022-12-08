@@ -55,6 +55,7 @@ class AiArm(Arm):
     def joint_target_handle(self,data):
         its = data.joint.split("/")
         its_rad =[math.radians(float(i)) for i in its]                  #将角度转换为弧度
+        print(its_rad)
         result=self.set_joint_value_target(its_rad)
         # print("arm joint result:",result)
         if result:
@@ -62,8 +63,19 @@ class AiArm(Arm):
         else:
             return xarm_jointResponse(xarm_jointResponse.ERROR)         # 执行失败
 
+    def space_target_handle(self,data):
+        its = data.space.split("/")
+        its_rad =[float(i) for i in its]                       
+        result=self.goPose_rpy(its_rad)
+        print("arm space result:",result)
+        if result:
+            return xarm_spaceResponse(xarm_spaceResponse.SUCCESS)       # 执行完成
+        else:
+            return xarm_spaceResponse(xarm_spaceResponse.ERROR)         # 执行失败
+
     def VnodeData_to_app(self):
         rospy.Service('/vnode_xarm/joint_target', xarm_joint, self.joint_target_handle)    # 建立服务 等待客户端进行连接
+        rospy.Service('/vnode_xarm/space_target', xarm_space, self.space_target_handle)    # 建立服务 等待客户端进行连接
         rospy.spin()
     
     def app_to_VnodeData(self):
@@ -71,9 +83,9 @@ class AiArm(Arm):
             data=Float32MultiArray()
             # 关节
             joint=self.get_joints()
-            data.data=joint
+            # data.data=joint
             # 取6位小数
-            # data.data=[float('%.6f'%i) for i in joint] 
+            data.data=[180/math.pi*i for i in joint]    #弧度转换角度
             self.joint_posture_pub.publish(data) 
             # 空间
             pose=self.getPose()

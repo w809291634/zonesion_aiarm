@@ -4,7 +4,7 @@ TARGET := vnode-xarm
 #TARGET输出目录
 OUTDIR = ./release/
 #SENSOR_TYPE传感器节点类型          
-SENSOR_TYPE := 510
+SENSOR_TYPE := 511
 #NODE_MAC 节点MAC地址，类似 WIFI:02:42:14:a8:2d:4e，默认空，程序自动获取
 NODE_MAC :=   
 

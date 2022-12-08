@@ -14,9 +14,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
-// #include <fcntl.h>
+#include <fcntl.h>
 #include <pthread.h>
-// #include <sys/types.h>
+#include <sys/types.h>
 
 #include "ros-service.h"
 #include "../../common/app/zxbee.h"
@@ -24,7 +24,7 @@
 #include "../../common/app/util.h"
 
 
-#define debug           0x01                                    // 0x80-仅打印无线数据 0x01-打印所有 0x00-不打印
+#define debug           0x80                                    // 0x80-仅打印无线数据 0x01-打印所有 0x00-不打印
 
 #if (debug & 0x80)
 #define ERR printf
@@ -50,51 +50,36 @@ static void* thread_service_proc(void *args)
     }
     if(memcmp(argv->service->msg_st.text, "rosservice call", 14) == 0){
       argv->fp = popen(argv->service->msg_st.text, "r");
+      // argv->fp = popen("ls", "r");
       if (argv->fp == NULL){
-          fprintf(stderr, "popen failed width erro: %d\r\n", errno);
+        fprintf(stderr, "popen failed width erro: %d\r\n", errno);
       }
       DEBUG("cmd: %s\r\n",argv->service->msg_st.text);
-      // int flags=fcntl(argv->fp,F_GETFL);          // 获取状态
-      // flags|=O_NONBLOCK;                          // 设置为非阻塞
-      // fcntl(argv->fp,F_SETFL,flags);
-      // memset(argv->buffer,0,argv->buflen);
-      uint32_t st=millis();
-      printf("st:%d\r\n",st);
-      while(1){
-          char* res=fgets(argv->buffer, argv->buflen, argv->fp);
-          printf("res:%d %d\r\n",res,strlen((char*)argv->buffer));
-          if(strlen((char*)argv->buffer)>0){
-            DEBUG("argv->buffer %s\r\n",argv->buffer);
-            if(memcmp(argv->buffer, "ERROR:", 6) == 0 || memcmp(argv->buffer, "result: 1", 9) == 0){
-              // 执行错误,这里可以定义协议区分具体错误并返回
-              ERR("ERROR:argv->buffer %s\r\n",argv->buffer);
-              ZXBeeBegin();
-              ZXBeeAdd(argv->tag,argv->e_list[1]);        //错误码
-              p = ZXBeeEnd();
-              ZXBeeInfSend(p, strlen(p));
-              printf("here\r\n");
-              break; 
-            }else if(memcmp(argv->buffer, "result: 0", 9) == 0){
-              // 执行成功
-              ZXBeeBegin();
-              ZXBeeAdd(argv->tag,argv->e_list[0]);        //成功码
-              p = ZXBeeEnd();
-              ZXBeeInfSend(p, strlen(p));
-              break;
-            }
-          }
-          //超时
-          uint32_t et=millis();
-          printf("et:%d\r\n",et);
-          if(millis()-st>argv->service->timeout*1000 || memcmp(argv->buffer, "result: 2", 9) == 0){
-            ERR("ERROR:service request timeout!\r\n");
-            ZXBeeBegin();
-            ZXBeeAdd(argv->tag,argv->e_list[2]);           //超时码
-            p = ZXBeeEnd();
-            ZXBeeInfSend(p, strlen(p));
-            break;
-          }
-          sleep(1);
+      memset(argv->buffer,0,argv->buflen);
+      // uint32_t st=millis();
+      // printf("st:%u\r\n",st);
+      if(NULL!=fgets(argv->buffer, argv->buflen, argv->fp))
+      {
+        DEBUG("argv->buffer %s\r\n",argv->buffer);
+        if(memcmp(argv->buffer, "result: 0", 9) == 0){
+          // 执行成功
+          ZXBeeBegin();
+          ZXBeeAdd(argv->tag,argv->e_list[0]);        //成功码
+          p = ZXBeeEnd();
+          ZXBeeInfSend(p, strlen(p));
+        }else if(memcmp(argv->buffer, "result: 1", 9) == 0){
+          // 执行错误,这里可以定义协议区分具体错误并返回
+          ZXBeeBegin();
+          ZXBeeAdd(argv->tag,argv->e_list[1]);        //错误码
+          p = ZXBeeEnd();
+          ZXBeeInfSend(p, strlen(p));
+        }
+      }else{
+        // 执行错误,这里可以定义协议区分具体错误并返回
+        ZXBeeBegin();
+        ZXBeeAdd(argv->tag,argv->e_list[1]);        //错误码
+        p = ZXBeeEnd();
+        ZXBeeInfSend(p, strlen(p));
       }
       pclose(argv->fp);
     }
