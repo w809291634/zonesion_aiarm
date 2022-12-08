@@ -12,9 +12,9 @@ NODE_MAC :=
 CC := $(CROSS_COMPILE)gcc
 LD := $(CROSS_COMPILE)ld
 
-CFLAGS := -Wall -DSENSOR_TYPE=$(SENSOR_TYPE)  -DNODE_MAC=\"$(NODE_MAC)\"
+CFLAGS := -Wall -DSENSOR_TYPE=$(SENSOR_TYPE)  -DNODE_MAC=\"$(NODE_MAC)\" 
 
-CFLAGS += -std=c99
+CFLAGS += -std=gnu99
 
 # 如果选择调试模式
 ifeq ($(BUILD_VER), DEBUG)

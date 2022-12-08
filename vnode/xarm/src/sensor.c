@@ -340,7 +340,7 @@ void sensorInit(void)
   // ros_topic_register("/xcar/sensors", on_sensor_msg_cb, 128);
   // ros_topic_register("/gps/fix", on_uwb_msg_cb, 128);
   // ros_topic_register("/demo/acar/plate", on_plate_msg_cb, 128);
-  ros_service_register(&joint_target_cmd,1000);
+  ros_service_register(&joint_target_cmd,128);
 }
 /*********************************************************************************************
  * 名称：sensorUpdate()

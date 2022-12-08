@@ -18,7 +18,7 @@
 #include "ros-sensor.h"
  
 
-FILE *popen(char*, char *);
+// FILE *popen(char*, char *);
 
 void* thread_topic_proc(void *args)
 {

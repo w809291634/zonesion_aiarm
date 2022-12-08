@@ -6,7 +6,8 @@
         "*.tcc": "c",
         "fstream": "c",
         "istream": "c",
-        "ostream": "c"
+        "ostream": "c",
+        "thread": "c"
     },
     "python.pythonPath": "/usr/bin/python"
 }

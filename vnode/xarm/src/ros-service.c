@@ -9,42 +9,56 @@
 /*********************************************************************************************
 * 头文件
 *********************************************************************************************/
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <unistd.h> 
+#include <unistd.h>
 #include <pthread.h>
 
 #include "ros-service.h"
+
 static void* thread_service_proc(void *args)
 {
     service_proc_args_t* argv = (service_proc_args_t*)args;
     long int msgtype = 0;
-
+        FILE * fp;
+        char buff[128]={0};
     while(1){
-        if ( msgrcv ( argv->msg_queue->msg_id, (void *)&argv->msg_queue->msg_st, MSGBUFSIZE, msgtype, 0 ) == -1 ) {
+        if (msgrcv(argv->msg_queue->msg_id, (void *)&argv->msg_queue->msg_st, MSGBUFSIZE, msgtype, 0) == -1) {
             fprintf ( stderr, "msgrcv failed width erro: %d\r\n", errno );
             sleep(1);
         }
         printf ( "You wrote: %s\r\n", argv->msg_queue->msg_st.text );
-        if(memcmp(argv->msg_queue->msg_st.text, "rosservice call", 14) == 0){
-            printf ( "argv->fp1: %d\r\n", argv->fp );
-            argv->fp = popen(argv->msg_queue->msg_st.text, "r");
-            printf ( "argv->fp2: %d\r\n", argv->fp );
-            if (argv->fp == NULL){
-                fprintf ( stderr, "popen failed width erro: %d\r\n", errno );
 
-            }
-            while((fgets(argv->buffer, argv->buflen, argv->fp))!=NULL){
-                printf("argv->buffer %s\r\n",argv->buffer);
-
-
-
-            }
-            pclose(argv->fp);
-
+        //fp = popen("rosservice call /vnode_xarm/joint_target \"joint: '0/-44/89/89/0'\"", "r");
+        fp = popen("ls", "r");
+        printf("fp is %d\r\n",fp);
+        if (fp == NULL){
+            return -1;
         }
+        while((fgets(buff, 128-1, fp))!=NULL){
+            printf("argv->buffer %s\r\n",buff);
+        }
+
+
+        // if(memcmp(argv->msg_queue->msg_st.text, "rosservice call", 14) == 0){
+        //     printf ( "argv->fp1: %d\r\n", argv->fp );
+        //     argv->fp = popen(argv->msg_queue->msg_st.text, "r");
+        //     printf ( "argv->fp2: %d\r\n", argv->fp );
+        //     if (argv->fp == NULL){
+        //         fprintf ( stderr, "popen failed width erro: %d\r\n", errno );
+
+        //     }
+        //     while((fgets(argv->buffer, argv->buflen, argv->fp))!=NULL){
+        //         printf("argv->buffer %s\r\n",argv->buffer);
+
+
+
+        //     }
+        //     pclose(argv->fp);
+
+        // }
 
     }
     fclose(argv->fp);
