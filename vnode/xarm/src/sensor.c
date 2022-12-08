@@ -27,7 +27,6 @@
 #include <sys/types.h>
 #include <errno.h>
 
-static char LicensePlate[16];
 /*********************************************************************************************
  * 全局变量
  *********************************************************************************************/
@@ -90,148 +89,49 @@ char *getItem(char *str, int i)
 }
 
 /*********************************************************************************************
- * 名称：xcar_send_target
- * 功能：设置关节目标位姿，即V1参数
+ * 名称：on_target_joint_msg_cb
+ * 功能：机械臂关节位置
  * 参数：
  * 返回：
  * 修改：
  * 注释：
  *********************************************************************************************/
-void xarm_send_joint_target(char *v1)
+static void on_target_joint_msg_cb(unsigned long long tm, char *msg)
 {
-  char cmd[96];
-  strcpy(xarm_info.joint_target, v1);
-  sprintf(cmd, "rostopic pub /vnode_xarm/joint_target std_msgs/String \"data: '%s'\"  -1 &", v1);
-  system(cmd);
+  // printf("joint_msg_cb %lld, %s\r\n", tm, msg);
+  if (tm != 0) {
+    property_set(1, xarm_info.joint1 = atof(p));
+    property_set(2, xarm_info.joint2 = atof(p));
+    property_set(3, xarm_info.joint3 = atof(p));
+    property_set(5, xarm_info.joint4 = atof(p));
+    property_set(4, xarm_info.joint5 = atof(p));
+    // printf("joint:%f,%f,%f\r\n",xarm_info.joint1,xarm_info.joint3,xarm_info.joint5);
+  }
 }
 
 /*********************************************************************************************
- * 名称：xcar_send_mode
- * 功能：设置小车的模式，即V2参数
- * 参数：
- * 返回：
- * 修改：
- * 注释：
- *********************************************************************************************/
-void xcar_send_mode(int v2)
+* 名称： on_target_space_msg_cb
+* 功能： 机械臂空间位置
+* 参数：
+* 返回：
+* 修改：
+* 注释：
+*********************************************************************************************/
+static void  on_target_space_msg_cb (unsigned long long tm, char *msg)
 {
-  char cmd[96];
-  sprintf(cmd, "rostopic pub /demo/acar/mode std_msgs/String \"data: '%d'\"  -1 &", v2);
-  system(cmd);
-}
-/*********************************************************************************************
- * 名称：xcar_send_stop
- * 功能：设置小车停止标志
- * 参数：
- * 返回：
- * 修改：
- * 注释：
- *********************************************************************************************/
-void xcar_send_stop(int v5)
-{
-  char cmd[96];
-  sprintf(cmd, "rostopic pub /demo/acar/stop std_msgs/String \"data: '%d'\"  -1 &", v5);
-  system(cmd);
-}
-/*********************************************************************************************
- * 名称：xcar_send_voice
- * 功能：小车语音播报
- * 参数：
- * 返回：
- * 修改：
- * 注释：
- *********************************************************************************************/
-void xcar_send_voice(char *v4)
-{
-  char cmd[512];
-  sprintf(cmd, "rostopic pub /demo/acar/voice std_msgs/String \"data: '%s'\"  -1 &", v4);
-  system(cmd);
+  // printf("space_msg_cb %lld, %s\r\n", tm, msg);
+  if (tm != 0) {
+    property_set(1, xarm_info.x = atof(p));
+    property_set(2, xarm_info.y = atof(p));
+    property_set(3, xarm_info.z = atof(p));
+    property_set(4, xarm_info.R = atof(p));
+    property_set(5, xarm_info.P = atof(p));
+    property_set(6, xarm_info.Y = atof(p));
+    // printf("space_x:%f,%f,%f\r\n",xarm_info.x,xarm_info.y ,xarm_info.z);
+    // printf("space_R:%f,%f,%f\r\n",xarm_info.R,xarm_info.P ,xarm_info.Y);
+  }
 }
 
-/*********************************************************************************************
- * 名称：on_sensor_msg_cb
- * 功能：ros传感器数据解析
- * 参数：
- * 返回：
- * 修改：
- * 注释：
- *********************************************************************************************/
-static void on_sensor_msg_cb(unsigned long long tm, char *msg)
-{
-}
-
-// /*********************************************************************************************
-// * 名称：on_pos_msg_cb
-// * 功能： 小车位置解析
-// * 参数：
-// * 返回：
-// * 修改：
-// * 注释：
-// *********************************************************************************************/
-// static void  on_pos_msg_cb (unsigned long long tm, char *msg)
-// {
-//     //printf("on_pos_msg_cb %ld, %s", tm, msg);
-//     if (tm != 0) {
-//         property_set(1, xarm_info.pos_x = atof(p));
-//         property_set(2, xarm_info.pos_y = atof(p));
-//         property_set(3, xarm_info.pos_yaw = atof(p));
-
-//         property_set(4, xarm_info.speed_x = atof(p));
-//         property_set(5, xarm_info.speed_yaw = atof(p));
-//     }
-// }
-
-// /*********************************************************************************************
-// * 名称：on_target_msg_cb
-// * 功能：任务话题监听
-// * 参数：
-// * 返回：
-// * 修改：
-// * 注释：
-// *********************************************************************************************/
-// static void  on_target_msg_cb (unsigned long long tm, char *msg)
-// {
-//     //printf("%ld, %s", tm, msg);
-//     if (tm != 0) {
-//         msg[strlen(msg)-1] = '\0'; //去掉最后的\n
-//         strcpy(xarm_info.target, msg);
-//     }
-// }
-// /*********************************************************************************************
-// * 名称：on_uwb_msg_cb
-// * 功能： uwb数据处理
-// * 参数：
-// * 返回：
-// * 修改：
-// * 注释：
-// *********************************************************************************************/
-// static void on_uwb_msg_cb(unsigned long long tm, char *msg)
-// {
-//     //printf("on_uwb_msg_cb %llu, %s", tm, msg);
-//     //on_uwb_msg_cb 1634094447272943973,
-//     // msg format
-//     // 264,1634094447272943973,/gps,-1,1,nan,nan,nan,nan,0.0,0.0,0.0,nan,0.0,0.0,0.0,nan,1
-//     //                                    y,  x,  z
-//     if (tm != 0) {
-//         property_set(6, xarm_info.uwb_x = atof(p));
-//         property_set(5, xarm_info.uwb_y = atof(p));
-//     }
-// }
-// /*********************************************************************************************
-// * 名称：on_plate_msg_cb
-// * 功能： 应用设置车牌消息处理
-// * 参数：
-// * 返回：
-// * 修改：
-// * 注释：
-// *********************************************************************************************/
-// static void on_plate_msg_cb(unsigned long long tm, char *msg)
-// {
-//     if (tm != 0) {
-//         msg[strlen(msg)-1] = '\0'; //去掉最后的\n
-//         strncpy(LicensePlate, msg, sizeof LicensePlate);
-//     }
-// }
 /*********************************************************************************************
  * 名称：updateV0()
  * 功能：更新V0的值
@@ -267,11 +167,11 @@ void updateV3()
  *********************************************************************************************/
 void updateA0(void)
 {
-  // 温度值，浮点型：0.1精度，-40.0~70.0，单位：°C
-  // sprintf(A0, "%d&%.1f&%d&%.1f&%d&%d",
-  //     xarm_info.light,xarm_info.temp, xarm_info.humi,
-  //     xarm_info.pressure/1000.0f, xarm_info.mp503,
-  //     xarm_info.mp2);
+  //机械臂关节值
+  sprintf(A0, "%.6f/%.6f/%.6f/%.6f/%.6f",
+      xarm_info.joint1,xarm_info.joint2,
+      xarm_info.joint3,xarm_info.joint4,
+      xarm_info.joint5);
 }
 // /*********************************************************************************************
 // * 名称：updateA1()
@@ -283,15 +183,11 @@ void updateA0(void)
 // *********************************************************************************************/
 void updateA1(void)
 {
-  // //电池电量，0~100%
-  // if (xarm_info.vbat >= 12.5f){
-  //     sprintf(A1, "100");
-  // } else if (xarm_info.vbat<10.5f) {
-  //     sprintf(A1, "0");
-  // } else {
-  //     int v = (xarm_info.vbat - 10.5f)/2.0f*100;
-  //     sprintf(A1, "%d", v);
-  // }
+  //机械臂空间值
+  sprintf(A1, "%.6f/%.6f/%.6f/%.6f/%.6f/%.6f",
+      xarm_info.x,xarm_info.y,
+      xarm_info.z,xarm_info.R,
+      xarm_info.P,xarm_info.Y);
 }
 // /*********************************************************************************************
 // * 名称：updateA2()
@@ -325,11 +221,12 @@ void updateA1(void)
 //定义：服务器错误码
 static const char* err_code[]={
   "0",        //成功，任务结束
-  "1",
-  "2",
+  "-1",       //错误
+  "-2",       //服务请求超时
 };
-//定义：消息队列路径，名称，消息类型
-static msg_queue joint_cmd={"/home/zonesion/catkin_ws/src/aiarm/tmp",'a',.msg_st.msg_type=1,};
+//定义：服务名，消息队列路径，名称，超时，消息类型
+static service_obj joint_cmd={"/vnode_xarm/joint_target","/home/zonesion/catkin_ws/src/aiarm/tmp",'a'
+,.timeout=10,.msg_st.msg_type=1,};
 /*********************************************************************************************
  * 名称：sensorInit()
  * 功能：传感器硬件初始化
@@ -341,15 +238,11 @@ static msg_queue joint_cmd={"/home/zonesion/catkin_ws/src/aiarm/tmp",'a',.msg_st
 void sensorInit(void)
 {
   // 初始化传感器代码
-  // ros_topic_register("/demo/acar/to_server/target", on_target_msg_cb, 128);
-  // ros_topic_register("/demo/acar/to_client/target", on_target_msg_cb, 128);
-  // ros_topic_register("/demo/acar/pos", on_pos_msg_cb, 128);
-  // ros_topic_register("/xcar/sensors", on_sensor_msg_cb, 128);
-  // ros_topic_register("/gps/fix", on_uwb_msg_cb, 128);
-  // ros_topic_register("/demo/acar/plate", on_plate_msg_cb, 128);
+  ros_topic_register("/aiarm/arm_joint", on_target_joint_msg_cb, 256);
+  ros_topic_register("/aiarm/arm_space", on_target_space_msg_cb, 256);
 
   // 注册服务类型
-  ros_service_register("V1",err_code,&joint_cmd,256);
+  ros_service_register("V1",(char **)err_code,&joint_cmd,256);
 }
 /*********************************************************************************************
  * 名称：sensorUpdate()
@@ -558,7 +451,7 @@ int ZXBeeUserProcess(char *ptag, char *pval)
     else
     {
       strcpy(V1, pval);                
-      sprintf(joint_cmd.msg_st.text,"rosservice call /vnode_xarm/joint_target \"joint: '%s'\"",pval);
+      sprintf(joint_cmd.msg_st.text,"rosservice call %s \"joint: '%s'\"",joint_cmd.service,pval);
       if(msgsnd(joint_cmd.msg_id,(void *)&joint_cmd.msg_st,strlen(pval),IPC_NOWAIT)== -1){
         fprintf ( stderr, "msgsnd failed\r\n" );
       };
@@ -568,30 +461,27 @@ int ZXBeeUserProcess(char *ptag, char *pval)
   {
     if (0 == strcmp("?", pval))
     {
-      sprintf(p, "%u", V2);
-      ZXBeeAdd("V2", p);
+      // sprintf(p, "%u", V2);
+      // ZXBeeAdd("V2", p);
     }
     else
     {
-      strcpy(V2, pval);
-      xcar_send_mode(V2);
+      // strcpy(V2, pval);
     }
   }
   if (0 == strcmp("V3", ptag))
   {
     if (0 == strcmp("?", pval))
     {
-      updateV3();
-      ZXBeeAdd("V3", V3);
+      // updateV3();
+      // ZXBeeAdd("V3", V3);
     }
   }
   if (0 == strcmp("V4", ptag))
   {
-    xcar_send_voice(pval);
   }
   if (0 == strcmp("V5", ptag))
   {
-    xcar_send_stop(atoi(pval));
   }
   return ret;
 }

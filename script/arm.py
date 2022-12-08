@@ -160,7 +160,7 @@ class Arm(object):
         return pose
 
     def getRpy(self):
-        return self.arm.get_current_rpy(arm.get_end_effector_link())
+        return self.arm.get_current_rpy(self.arm.get_end_effector_link())
 
     def get_joints(self):
         return self.arm.get_current_joint_values()

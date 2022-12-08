@@ -18,7 +18,7 @@ import cvwin
 import threading
 import math
 from geometry_msgs.msg import PoseStamped, Pose
-from std_msgs.msg import String
+from std_msgs.msg import Float32MultiArray,Int16MultiArray,Int32,Int32MultiArray
 from aiarm.srv import *
 import yaml
 this = sys.modules[__name__]
@@ -43,9 +43,14 @@ from arm import Arm
 class AiArm(Arm):
     def __init__(self,g_open):
         super(AiArm,self).__init__(g_open,xarm=this.arm_mode,arm_debug=False)          #定义为在arm（3399）端运行此程序。初始化Arm类,定义为"varm"是在虚拟机远程控制
-        vnodeData_subscriber = threading.Thread(target=self.VnodeData_to_app)
-        vnodeData_subscriber.setDaemon(True)
-        vnodeData_subscriber.start()
+        self.joint_posture_pub=rospy.Publisher('/aiarm/arm_joint', Float32MultiArray, queue_size=0, latch=True)
+        self.space_posture_pub=rospy.Publisher('/aiarm/arm_space', Float32MultiArray, queue_size=0, latch=True)
+        vnodeData_service = threading.Thread(target=self.VnodeData_to_app)
+        vnodeData_service.setDaemon(True)
+        vnodeData_service.start()
+        vnodeData_publish = threading.Thread(target=self.app_to_VnodeData)
+        vnodeData_publish.setDaemon(True)
+        vnodeData_publish.start()
 
     def joint_target_handle(self,data):
         its = data.joint.split("/")
@@ -58,9 +63,27 @@ class AiArm(Arm):
             return xarm_jointResponse(xarm_jointResponse.ERROR)         # 执行失败
 
     def VnodeData_to_app(self):
-        service_gripper = rospy.Service('/vnode_xarm/joint_target', xarm_joint, self.joint_target_handle)    # 建立服务 等待客户端进行连接
-
+        rospy.Service('/vnode_xarm/joint_target', xarm_joint, self.joint_target_handle)    # 建立服务 等待客户端进行连接
         rospy.spin()
+    
+    def app_to_VnodeData(self):
+        while True:
+            data=Float32MultiArray()
+            # 关节
+            joint=self.get_joints()
+            data.data=joint
+            # 取6位小数
+            # data.data=[float('%.6f'%i) for i in joint] 
+            self.joint_posture_pub.publish(data) 
+            # 空间
+            pose=self.getPose()
+            rpy=self.getRpy()
+            poserpy=[pose[0],pose[1],pose[2],rpy[0],rpy[1],rpy[2]]
+            data.data=poserpy
+            # 取6位小数
+            # data.data=[float('%.6f'%i) for i in poserpy] 
+            self.space_posture_pub.publish(data)
+            time.sleep(1)
 
 if __name__ == '__main__':
     def quit(signum, frame):
@@ -73,5 +96,6 @@ if __name__ == '__main__':
     aiarm=AiArm(this.g_open)
     while True:
         time.sleep(5)
+        print('run')
 
 
