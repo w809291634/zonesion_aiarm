@@ -37,12 +37,11 @@ with open(this.config_path, "r") as f:
 # 应用配置参数
 ##############################################################################################
 this.g_open=config["g_open"]                    # 机械臂夹具打开角度
-this.arm_mode="xarm"                            # xarm:真实机械臂   varm:虚拟机械臂
 
 from arm import Arm
 class AiArm(Arm):
     def __init__(self,g_open):
-        super(AiArm,self).__init__(g_open,xarm=this.arm_mode,arm_debug=False)          #定义为在arm（3399）端运行此程序。初始化Arm类,定义为"varm"是在虚拟机远程控制
+        super(AiArm,self).__init__(g_open,arm_debug=False)          #定义为在arm（3399）端运行此程序。初始化Arm类,定义为"varm"是在虚拟机远程控制
         self.joint_posture_pub=rospy.Publisher('/aiarm/arm_joint', Float32MultiArray, queue_size=0, latch=True)
         self.space_posture_pub=rospy.Publisher('/aiarm/arm_space', Float32MultiArray, queue_size=0, latch=True)
         vnodeData_service = threading.Thread(target=self.VnodeData_to_app)
@@ -74,8 +73,8 @@ class AiArm(Arm):
             return xarm_spaceResponse(xarm_spaceResponse.ERROR)         # 执行失败
 
     def VnodeData_to_app(self):
-        rospy.Service('/vnode_xarm/joint_target', xarm_joint, self.joint_target_handle)    # 建立服务 等待客户端进行连接
-        rospy.Service('/vnode_xarm/space_target', xarm_space, self.space_target_handle)    # 建立服务 等待客户端进行连接
+        rospy.Service('/vnode_xarm/joint_target', xarm_joint, self.joint_target_handle)    
+        rospy.Service('/vnode_xarm/space_target', xarm_space, self.space_target_handle)    
         rospy.spin()
     
     def app_to_VnodeData(self):

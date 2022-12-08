@@ -73,6 +73,11 @@ static void* thread_service_proc(void *args)
           ZXBeeAdd(argv->tag,argv->e_list[1]);        //错误码
           p = ZXBeeEnd();
           ZXBeeInfSend(p, strlen(p));
+        }else{
+          ZXBeeBegin();
+          ZXBeeAdd(argv->tag,argv->e_list[2]);        //超时码
+          p = ZXBeeEnd();
+          ZXBeeInfSend(p, strlen(p));
         }
       }else{
         // 执行错误,这里可以定义协议区分具体错误并返回

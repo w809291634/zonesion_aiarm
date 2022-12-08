@@ -15,6 +15,7 @@ import math
 this = sys.modules[__name__]
 import sys   
 import signal
+import platform
 from moveit_simple_grasps.srv import GenerateSolutions
 from marm_controller.srv import *
 #机械臂调试
@@ -41,9 +42,15 @@ def quit(signum, frame):
 this.arm_joint=[]
 this.arm_res=0
 class Arm(object):
-    def __init__(self,g_open,xarm="varm",gripper_ty=True,arm_debug=False):
+    def __init__(self,g_open,gripper_ty=True,arm_debug=False):
         self.arm = MoveGroupCommander("manipulator")
-        self.xarm=xarm
+        uname=platform.uname()
+        if uname.count('x86_64')>0 :
+          self.xarm="varm" 
+          print("Debugging with virtual machine")
+        else :
+          self.xarm="xarm"
+        self.xarm="xarm"       #调试使用
         if self.xarm=="varm":
             try:
                 rospy.wait_for_service('/arm_controller/gripper',timeout=5)
@@ -180,6 +187,52 @@ class Arm(object):
         '''
             机械爪控制en  :True 抓取
                         :False 释放
+        '''
+        if self.xarm=="varm":
+            if en:
+                err=self.gripper(self.gripper_close)
+                if err.result!=0:
+                    print("gripper run error!")
+            else:
+                err=self.gripper(self.gripper_open)
+                if err.result!=0:
+                    print("gripper run error!")
+        elif self.xarm=="xarm":
+            def gripper_arrive(data1,data2,err=10):
+                if abs(data1-data2)<err:
+                    return True
+                else:
+                    return False   
+            def __setGripper(_data):
+                st1=time.time()
+                while True:
+                    self.gripper.publish(Int32(data=_data))            
+                    this.arm_res=0
+                    self.arm_status_pub.publish(Int32(1))
+                    time.sleep(grip_query_time)
+                    st=time.time()
+                    while not this.arm_res:
+                        time.sleep(0.02)
+                        if time.time()-st>grip_query_time:          # 等待
+                            print("no arm_res")
+                            break 
+                    if this.arm_res==1:
+                        # print("g_1",_data)
+                        # print("g_2",this.arm_joint[0])
+                        if gripper_arrive(_data,this.arm_joint[0],gripper_arrive_err)==True:
+                            print("gripper run success")
+                            break
+                    if time.time()-st1>grip_wait_time:               # 等待
+                        print("gripper run error!")
+                        break  
+            if en:
+                __setGripper(self.gripper_close)
+            else:
+                __setGripper(self.gripper_open)
+
+    def setGripperJoint(self,value):
+        '''
+            value :设置夹具角度
         '''
         if self.xarm=="varm":
             if en:
