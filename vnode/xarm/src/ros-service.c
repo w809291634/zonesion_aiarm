@@ -36,12 +36,12 @@ static void* thread_service_proc(void *args)
                 fprintf ( stderr, "popen failed width erro: %d\r\n", errno );
 
             }
-            // while((fgets(argv->buffer, argv->buflen, argv->fp))!=NULL){
-            //     printf("argv->buffer %s\r\n",argv->buffer);
+            while((fgets(argv->buffer, argv->buflen, argv->fp))!=NULL){
+                printf("argv->buffer %s\r\n",argv->buffer);
 
 
 
-            // }
+            }
             pclose(argv->fp);
 
         }
@@ -59,31 +59,6 @@ static void* thread_service_proc(void *args)
 int ros_service_register(msg_queue_t msg,int bufsize)
 {
     service_proc_args_t *pa=NULL;
-
-
-    FILE *fp = NULL;
- 
-     char buf[128] = { 0 };
- 
-     if ((fp = popen("ls .", "r")) == NULL){
-        perror("popen error");
-        return -1;
-     }
- 
-     while (fgets(buf, 128, fp) != NULL){
-        printf("%s", buf);
-     }
- 
-     pclose(fp);
-
-
-
-
-
-
-
-
-
 
     msg->key=ftok( msg->pathname, msg->proj);
     if (msg->key  == -1) {
