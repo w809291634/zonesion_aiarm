@@ -60,6 +60,7 @@ add_service_files(
   xarm_joint.srv
   xarm_space.srv
   xarm_fix_stroke.srv
+  xarm_vis_grasp.srv
   xarm_pre_pos.srv
 )
 

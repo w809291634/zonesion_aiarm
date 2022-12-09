@@ -86,4 +86,7 @@
     <rosparam command="load" file="$(find marm_moveit_config)/config/kinematics.yaml"/>
   </node>
 
+  <!-- 发布相机坐标系 -->
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_camera" args="0.14 0.04 0.2 -1.5707963  0  -1.5707963 base_link camera_link 50" />
+
 </launch>

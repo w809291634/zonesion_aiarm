@@ -55,35 +55,28 @@ static void* thread_service_proc(void *args)
       }
       DEBUG("cmd: %s\r\n",argv->service->msg_st.text);
       memset(argv->buffer,0,argv->buflen);
-      // uint32_t st=millis();
-      // printf("st:%u\r\n",st);
-      if(NULL!=fgets(argv->buffer, argv->buflen, argv->fp))
+      if(NULL!=fgets(argv->buffer, argv->buflen-1, argv->fp))
       {
-        DEBUG("argv->buffer %s\r\n",argv->buffer);
-        if(memcmp(argv->buffer, "result: 0", 9) == 0){
-          // 执行成功
+        DEBUG("argv->buffer: %s\r\n",argv->buffer);
+        if(memcmp(argv->tag, "D1", 2) != 0){              // D1暂时不处理结果
           ZXBeeBegin();
-          ZXBeeAdd(argv->tag,argv->e_list[0]);        //成功码
-          p = ZXBeeEnd();
-          ZXBeeInfSend(p, strlen(p));
-        }else if(memcmp(argv->buffer, "result: 1", 9) == 0){
-          // 执行错误,这里可以定义协议区分具体错误并返回
-          ZXBeeBegin();
-          ZXBeeAdd(argv->tag,argv->e_list[1]);        //错误码
-          p = ZXBeeEnd();
-          ZXBeeInfSend(p, strlen(p));
-        }else{
-          ZXBeeBegin();
-          ZXBeeAdd(argv->tag,argv->e_list[2]);        //超时码
+          if(memcmp(argv->buffer, "result: 0", 9) == 0){
+            ZXBeeAdd(argv->tag,argv->e_list[0]);        //成功码
+          }else if(memcmp(argv->buffer, "result: 1", 9) == 0){
+            ZXBeeAdd(argv->tag,argv->e_list[1]);        //错误码
+          }else{
+            ZXBeeAdd(argv->tag,argv->e_list[2]);        //超时码
+          }
           p = ZXBeeEnd();
           ZXBeeInfSend(p, strlen(p));
         }
       }else{
-        // 执行错误,这里可以定义协议区分具体错误并返回
-        ZXBeeBegin();
-        ZXBeeAdd(argv->tag,argv->e_list[1]);        //错误码
-        p = ZXBeeEnd();
-        ZXBeeInfSend(p, strlen(p));
+        if(memcmp(argv->tag, "D1", 2) != 0){              // D1暂时不处理结果
+          ZXBeeBegin();
+          ZXBeeAdd(argv->tag,argv->e_list[1]);          //错误码
+          p = ZXBeeEnd();
+          ZXBeeInfSend(p, strlen(p));
+        }
       }
       pclose(argv->fp);
     }

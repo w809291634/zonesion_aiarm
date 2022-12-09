@@ -82,7 +82,7 @@ static void usage(void)
     printf("       -h 帮助信息\n");
 }
 int main(int argc, char* argv[])
-{
+  {
     char *pmac = NULL;
     char *host = NULL;
     int port = 7003;

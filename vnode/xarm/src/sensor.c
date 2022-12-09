@@ -36,7 +36,7 @@ static uint8_t D0 = 0x9F;  // 默认打开主动上报功能
 static uint8_t D1 = 0;     // 控制位
 static char A0[ITEM_SIZE]; // 关节实时位姿  {A0=0/0/0/0/0}               返回5个关节值
 static char A1[ITEM_SIZE]; // 空间实时位姿  {A1=x/y/z/R/P/Y}
-static uint16_t V0 = 5;    // A0~A7上传时间间隔，默认1S
+static uint16_t V0 = 1;    // A0~A7上传时间间隔，默认1S
 static char V1[ITEM_SIZE]; // 查询或者设置机械臂的5个关节值，不含夹具。{V1=0/0/0/0/0}
 static char V2[ITEM_SIZE]; // 查询或者设置机械臂的位姿，RPY表示旋转方向 {V2=x/y/z/R/P/Y}
 static char V3[ITEM_SIZE]; // 查询或者设置机械臂的夹具 {V3=夹具值}
@@ -131,7 +131,6 @@ static void  on_target_space_msg_cb (unsigned long long tm, char *msg)
     // printf("space_R:%f,%f,%f\r\n",xarm_info.R,xarm_info.P ,xarm_info.Y);
   }
 }
-
 /*********************************************************************************************
  * 名称：updateV0()
  * 功能：更新V0的值
@@ -219,6 +218,10 @@ static service_obj space_cmd={"/vnode_xarm/space_target","/home/zonesion/catkin_
 ,.timeout=10, .result=V2, .msg_st.msg_type=1,};
 static service_obj fixture_stroke={"/vnode_xarm/fixture_stroke","/home/zonesion/catkin_ws/src/aiarm/tmp",'c'
 ,.timeout=10, .result=V3, .msg_st.msg_type=1,};
+static service_obj vis_grasp={"/vnode_xarm/visual_grasping","/home/zonesion/catkin_ws/src/aiarm/tmp",'d'
+,.timeout=10, .result=V4, .msg_st.msg_type=1,};
+static service_obj preset_positions={"/vnode_xarm/preset_positions","/home/zonesion/catkin_ws/src/aiarm/tmp",'e'
+,.timeout=10, .msg_st.msg_type=1,};
 /*********************************************************************************************
  * 名称：sensorInit()
  * 功能：传感器硬件初始化
@@ -240,14 +243,19 @@ void sensorInit(void)
     strcat(aiarm_path,"/tmp");
     strcpy(joint_cmd.pathname,aiarm_path);
     strcpy(space_cmd.pathname,aiarm_path);
+    strcpy(fixture_stroke.pathname,aiarm_path);
+    strcpy(vis_grasp.pathname,aiarm_path);
+    strcpy(preset_positions.pathname,aiarm_path);
     printf("INFO:msg queue path:%s\r\n",aiarm_path);
   }else{
     printf("ERROR:get path fail!");
   }
-  // 注册服务类型，
+  // 注册服务类型，错误码，服务对象，命令接收缓存区大小
   ros_service_register("V1",(char **)err_code,&joint_cmd,128);
   ros_service_register("V2",(char **)err_code,&space_cmd,128);
   ros_service_register("V3",(char **)err_code,&fixture_stroke,128);
+  ros_service_register("V4",(char **)err_code,&vis_grasp,128);
+  ros_service_register("D1",(char **)err_code,&preset_positions,128);
 }
 /*********************************************************************************************
  * 名称：sensorUpdate()
@@ -365,6 +373,14 @@ void sensorCheck(void)
 void sensorControl(uint8_t cmd)
 {
   // 根据cmd参数处理对应的控制程序
+  char data;
+  // 处理位1
+  if(cmd& 0x01)data='1';
+  else data='0';
+  sprintf(preset_positions.msg_st.text,"rosservice call %s \"data: %c\"",preset_positions.service,data);
+  if(msgsnd(preset_positions.msg_id,(void *)&preset_positions.msg_st,strlen(preset_positions.msg_st.text),IPC_NOWAIT)== -1){
+    fprintf ( stderr, "preset_positions msgsnd failed\r\n" );
+  }; 
 }
 /*********************************************************************************************
  * 名称：ZXBeeUserProcess()
@@ -404,11 +420,15 @@ int ZXBeeUserProcess(char *ptag, char *pval)
   { // 对D1的位进行操作，CD1表示位清零操作
     D1 &= ~val;
     sensorControl(D1); // 处理执行命令
+    sprintf(p, "%u", D1);
+    ZXBeeAdd("D1", p);
   }
   if (0 == strcmp("OD1", ptag))
   { // 对D1的位进行操作，OD1表示位置一操作
     D1 |= val;
     sensorControl(D1); // 处理执行命令
+    sprintf(p, "%u", D1);
+    ZXBeeAdd("D1", p);
   }
   if (0 == strcmp("D1", ptag))
   { // 查询执行器命令编码
@@ -434,7 +454,6 @@ int ZXBeeUserProcess(char *ptag, char *pval)
       ZXBeeAdd("A1", A1);
     }
   }
-
   if (0 == strcmp("V0", ptag))
   {
     if (0 == strcmp("?", pval))
@@ -457,7 +476,7 @@ int ZXBeeUserProcess(char *ptag, char *pval)
     { 
       strcpy(V1, pval);
       sprintf(joint_cmd.msg_st.text,"rosservice call %s \"joint: '%s'\"",joint_cmd.service,pval);
-      if(msgsnd(joint_cmd.msg_id,(void *)&joint_cmd.msg_st,strlen(pval),IPC_NOWAIT)== -1){
+      if(msgsnd(joint_cmd.msg_id,(void *)&joint_cmd.msg_st,strlen(joint_cmd.msg_st.text),IPC_NOWAIT)== -1){
         fprintf ( stderr, "msgsnd failed\r\n" );
       };
     }
@@ -472,7 +491,7 @@ int ZXBeeUserProcess(char *ptag, char *pval)
     {        
       strcpy(V2, pval);      
       sprintf(space_cmd.msg_st.text,"rosservice call %s \"space: '%s'\"",space_cmd.service,pval);
-      if(msgsnd(space_cmd.msg_id,(void *)&space_cmd.msg_st,strlen(pval),IPC_NOWAIT)== -1){
+      if(msgsnd(space_cmd.msg_id,(void *)&space_cmd.msg_st,strlen(space_cmd.msg_st.text),IPC_NOWAIT)== -1){
         fprintf ( stderr, "msgsnd failed\r\n" );
       };
     }
@@ -487,13 +506,25 @@ int ZXBeeUserProcess(char *ptag, char *pval)
     {        
       strcpy(V3, pval);      
       sprintf(fixture_stroke.msg_st.text,"rosservice call %s \"data: %s\"",fixture_stroke.service,pval);
-      if(msgsnd(fixture_stroke.msg_id,(void *)&fixture_stroke.msg_st,strlen(pval),IPC_NOWAIT)== -1){
+      if(msgsnd(fixture_stroke.msg_id,(void *)&fixture_stroke.msg_st,strlen(fixture_stroke.msg_st.text),IPC_NOWAIT)== -1){
         fprintf ( stderr, "msgsnd failed\r\n" );
       };
     }
   }
   if (0 == strcmp("V4", ptag))
   {
+    if (0 == strcmp("?", pval))
+    {
+      ZXBeeAdd("V4", V4);
+    }
+    else
+    {        
+      strcpy(V4, pval);      
+      sprintf(vis_grasp.msg_st.text,"rosservice call %s \"pos: '%s'\"",vis_grasp.service,pval);
+      if(msgsnd(vis_grasp.msg_id,(void *)&vis_grasp.msg_st,strlen(vis_grasp.msg_st.text),IPC_NOWAIT)== -1){
+        fprintf ( stderr, "msgsnd failed\r\n" );
+      };
+    }
   }
   if (0 == strcmp("V5", ptag))
   {
