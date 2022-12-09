@@ -33,13 +33,13 @@
 #define ITEM_SIZE 64
 
 static uint8_t D0 = 0x9F;  // 默认打开主动上报功能
-static uint8_t D1 = 0;     // bit0：夹具的开合控制（0张开，1闭合）  bit1：机械臂预置点（0home，1start）
+static uint8_t D1 = 0;     // 控制位
 static char A0[ITEM_SIZE]; // 关节实时位姿  {A0=0/0/0/0/0}               返回5个关节值
 static char A1[ITEM_SIZE]; // 空间实时位姿  {A1=x/y/z/R/P/Y}
 static uint16_t V0 = 5;    // A0~A7上传时间间隔，默认1S
 static char V1[ITEM_SIZE]; // 查询或者设置机械臂的5个关节值，不含夹具。{V1=0/0/0/0/0}
 static char V2[ITEM_SIZE]; // 查询或者设置机械臂的位姿，RPY表示旋转方向 {V2=x/y/z/R/P/Y}
-static uint8_t V3 = 0;     // 查询或者设置机械臂的夹具 {V3=夹具值}
+static char V3[ITEM_SIZE]; // 查询或者设置机械臂的夹具 {V3=夹具值}
 static char V4[ITEM_SIZE]; // 设置深度相机识别的物体空间坐标，进行分析并抓取 {V4=x/y/z}
 
 struct
@@ -146,18 +146,6 @@ void updateV0(char *val)
   V0 = atoi(val); // 获取数据上报时间更改值
 }
 /*********************************************************************************************
- * 名称：updateV3()
- * 功能：更新V3的值
- * 参数：
- * 返回：
- * 修改：
- * 注释：
- *********************************************************************************************/
-void updateV3()
-{
-  // sprintf(V3, "%.3f&%.3f", xarm_info.uwb_x, xarm_info.uwb_y);
-}
-/*********************************************************************************************
  * 名称：updateA0()
  * 功能：更新A0的值
  * 参数：
@@ -226,9 +214,11 @@ static const char* err_code[]={
 };
 //定义：服务名，消息队列路径，名称，超时，消息类型
 static service_obj joint_cmd={"/vnode_xarm/joint_target","/home/zonesion/catkin_ws/src/aiarm/tmp",'a'
-,.timeout=10,.msg_st.msg_type=1,};
+,.timeout=10, .result=V1, .msg_st.msg_type=1,};
 static service_obj space_cmd={"/vnode_xarm/space_target","/home/zonesion/catkin_ws/src/aiarm/tmp",'b'
-,.timeout=10,.msg_st.msg_type=1,};
+,.timeout=10, .result=V2, .msg_st.msg_type=1,};
+static service_obj fixture_stroke={"/vnode_xarm/fixture_stroke","/home/zonesion/catkin_ws/src/aiarm/tmp",'c'
+,.timeout=10, .result=V3, .msg_st.msg_type=1,};
 /*********************************************************************************************
  * 名称：sensorInit()
  * 功能：传感器硬件初始化
@@ -239,13 +229,25 @@ static service_obj space_cmd={"/vnode_xarm/space_target","/home/zonesion/catkin_
  *********************************************************************************************/
 void sensorInit(void)
 {
+  char aiarm_path[128]={0};
   // 初始化传感器代码
   ros_topic_register("/aiarm/arm_joint", on_target_joint_msg_cb, 256);
   ros_topic_register("/aiarm/arm_space", on_target_space_msg_cb, 256);
-
-  // 注册服务类型
+  // 消息队列路径
+  if(getcwd(aiarm_path, 128)!=NULL){
+    char* p = strstr(aiarm_path, "aiarm");
+    p[5]=0;
+    strcat(aiarm_path,"/tmp");
+    strcpy(joint_cmd.pathname,aiarm_path);
+    strcpy(space_cmd.pathname,aiarm_path);
+    printf("INFO:msg queue path:%s\r\n",aiarm_path);
+  }else{
+    printf("ERROR:get path fail!");
+  }
+  // 注册服务类型，
   ros_service_register("V1",(char **)err_code,&joint_cmd,128);
   ros_service_register("V2",(char **)err_code,&space_cmd,128);
+  ros_service_register("V3",(char **)err_code,&fixture_stroke,128);
 }
 /*********************************************************************************************
  * 名称：sensorUpdate()
@@ -452,8 +454,8 @@ int ZXBeeUserProcess(char *ptag, char *pval)
       ZXBeeAdd("V1", V1);
     }
     else
-    {
-      strcpy(V1, pval);                
+    { 
+      strcpy(V1, pval);
       sprintf(joint_cmd.msg_st.text,"rosservice call %s \"joint: '%s'\"",joint_cmd.service,pval);
       if(msgsnd(joint_cmd.msg_id,(void *)&joint_cmd.msg_st,strlen(pval),IPC_NOWAIT)== -1){
         fprintf ( stderr, "msgsnd failed\r\n" );
@@ -467,8 +469,8 @@ int ZXBeeUserProcess(char *ptag, char *pval)
       ZXBeeAdd("V2", V2);
     }
     else
-    {
-      strcpy(V2, pval);                
+    {        
+      strcpy(V2, pval);      
       sprintf(space_cmd.msg_st.text,"rosservice call %s \"space: '%s'\"",space_cmd.service,pval);
       if(msgsnd(space_cmd.msg_id,(void *)&space_cmd.msg_st,strlen(pval),IPC_NOWAIT)== -1){
         fprintf ( stderr, "msgsnd failed\r\n" );
@@ -479,8 +481,15 @@ int ZXBeeUserProcess(char *ptag, char *pval)
   {
     if (0 == strcmp("?", pval))
     {
-      // updateV3();
-      // ZXBeeAdd("V3", V3);
+      ZXBeeAdd("V3", V3);
+    }
+    else
+    {        
+      strcpy(V3, pval);      
+      sprintf(fixture_stroke.msg_st.text,"rosservice call %s \"data: %s\"",fixture_stroke.service,pval);
+      if(msgsnd(fixture_stroke.msg_id,(void *)&fixture_stroke.msg_st,strlen(pval),IPC_NOWAIT)== -1){
+        fprintf ( stderr, "msgsnd failed\r\n" );
+      };
     }
   }
   if (0 == strcmp("V4", ptag))

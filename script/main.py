@@ -37,11 +37,13 @@ with open(this.config_path, "r") as f:
 # 应用配置参数
 ##############################################################################################
 this.g_open=config["g_open"]                    # 机械臂夹具打开角度
+this.gripper_ty= True                           # 夹具极性
+this.g_range=[-130,130]                         # 底层夹具范围
 
 from arm import Arm
 class AiArm(Arm):
     def __init__(self,g_open):
-        super(AiArm,self).__init__(g_open,arm_debug=False)          #定义为在arm（3399）端运行此程序。初始化Arm类,定义为"varm"是在虚拟机远程控制
+        super(AiArm,self).__init__(g_open,gripper_ty=this.gripper_ty,arm_debug=False)          #定义为在arm（3399）端运行此程序。初始化Arm类,定义为"varm"是在虚拟机远程控制
         self.joint_posture_pub=rospy.Publisher('/aiarm/arm_joint', Float32MultiArray, queue_size=0, latch=True)
         self.space_posture_pub=rospy.Publisher('/aiarm/arm_space', Float32MultiArray, queue_size=0, latch=True)
         vnodeData_service = threading.Thread(target=self.VnodeData_to_app)
@@ -54,9 +56,7 @@ class AiArm(Arm):
     def joint_target_handle(self,data):
         its = data.joint.split("/")
         its_rad =[math.radians(float(i)) for i in its]                  #将角度转换为弧度
-        print(its_rad)
         result=self.set_joint_value_target(its_rad)
-        # print("arm joint result:",result)
         if result:
             return xarm_jointResponse(xarm_jointResponse.SUCCESS)       # 执行完成
         else:
@@ -66,15 +66,45 @@ class AiArm(Arm):
         its = data.space.split("/")
         its_rad =[float(i) for i in its]                       
         result=self.goPose_rpy(its_rad)
-        print("arm space result:",result)
         if result:
             return xarm_spaceResponse(xarm_spaceResponse.SUCCESS)       # 执行完成
         else:
             return xarm_spaceResponse(xarm_spaceResponse.ERROR)         # 执行失败
 
+    def fixture_stroke_handle(self,data):
+        value = data.data  
+        if value<this.g_range[0] or value>this.g_range[1]:
+          return xarm_fix_strokeResponse(xarm_fix_strokeResponse.ERROR)         # 执行失败
+        result=self.setGripperJoint(value)
+        if result:
+            return xarm_fix_strokeResponse(xarm_fix_strokeResponse.SUCCESS)       # 执行完成
+        else:
+            return xarm_fix_strokeResponse(xarm_fix_strokeResponse.ERROR)         # 执行失败
+
+    def fixture_switch_handle(self,data):
+        value = data.data  
+        result=self.setGripper(value)
+        if result:
+            return xarm_fix_switchResponse(xarm_fix_switchResponse.SUCCESS)       # 执行完成
+        else:
+            return xarm_fix_switchResponse(xarm_fix_switchResponse.ERROR)         # 执行失败
+
+    def preset_positions_handle(self,data):
+        value = data.data  
+        if value:
+          result=self.arm_goStart()
+        else:
+          result=self.arm_goHome()
+        if result:
+            return xarm_pre_posResponse(xarm_pre_posResponse.SUCCESS)       # 执行完成
+        else:
+            return xarm_pre_posResponse(xarm_pre_posResponse.ERROR)         # 执行失败
+
     def VnodeData_to_app(self):
-        rospy.Service('/vnode_xarm/joint_target', xarm_joint, self.joint_target_handle)    
-        rospy.Service('/vnode_xarm/space_target', xarm_space, self.space_target_handle)    
+        rospy.Service('/vnode_xarm/joint_target', xarm_joint, self.joint_target_handle)    #V1
+        rospy.Service('/vnode_xarm/space_target', xarm_space, self.space_target_handle)    #V2
+        rospy.Service('/vnode_xarm/fixture_stroke', xarm_fix_stroke, self.fixture_stroke_handle)    #V3
+        rospy.Service('/vnode_xarm/preset_positions', xarm_pre_pos, self.preset_positions_handle)    #D1.0 预置点
         rospy.spin()
     
     def app_to_VnodeData(self):
@@ -106,7 +136,11 @@ if __name__ == '__main__':
     rospy.init_node("AIARM_NODE", log_level=rospy.INFO)         #初始化节点
     aiarm=AiArm(this.g_open)
     while True:
-        time.sleep(5)
-        print('run')
+      # aiarm.setGripper(True)
+      # time.sleep(1)
+      # aiarm.setGripper(False)
+      # time.sleep(1)
+      time.sleep(5)
+      print('run')
 
 

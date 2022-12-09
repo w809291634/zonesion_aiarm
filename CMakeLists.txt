@@ -59,6 +59,8 @@ add_service_files(
   gripper.srv
   xarm_joint.srv
   xarm_space.srv
+  xarm_fix_stroke.srv
+  xarm_pre_pos.srv
 )
 
 ## Generate actions in the 'action' folder

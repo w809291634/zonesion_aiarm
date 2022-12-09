@@ -50,7 +50,6 @@ static void* thread_service_proc(void *args)
     }
     if(memcmp(argv->service->msg_st.text, "rosservice call", 14) == 0){
       argv->fp = popen(argv->service->msg_st.text, "r");
-      // argv->fp = popen("ls", "r");
       if (argv->fp == NULL){
         fprintf(stderr, "popen failed width erro: %d\r\n", errno);
       }

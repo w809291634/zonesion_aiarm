@@ -13,6 +13,7 @@ typedef struct {
     unsigned char timeout;          // 超时时间，单位s
     key_t key;
     int msg_id;
+    char* result;                   // 处理结果,预留
     struct {
         long int msg_type;
         char text[MSGBUFSIZE];
