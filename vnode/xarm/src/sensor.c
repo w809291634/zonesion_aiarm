@@ -233,7 +233,7 @@ static service_obj preset_positions={"/vnode_xarm/preset_positions","/home/zones
 void sensorInit(void)
 {
   char aiarm_path[128]={0};
-  // 初始化传感器代码
+  // 初始化消息接收线程
   ros_topic_register("/aiarm/arm_joint", on_target_joint_msg_cb, 256);
   ros_topic_register("/aiarm/arm_space", on_target_space_msg_cb, 256);
   // 消息队列路径
@@ -525,9 +525,6 @@ int ZXBeeUserProcess(char *ptag, char *pval)
         fprintf ( stderr, "msgsnd failed\r\n" );
       };
     }
-  }
-  if (0 == strcmp("V5", ptag))
-  {
   }
   return ret;
 }
