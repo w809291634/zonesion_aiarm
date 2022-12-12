@@ -146,13 +146,6 @@ class AiArm(Arm):
           self.set_joint_value_target(pre_grasp_positions)
           time.sleep(0.1)
           self.set_joint_value_target(grasp_positions)
-          time.sleep(0.1)
-          self.setGripper(True)
-          time.sleep(0.1)
-          self.set_joint_value_target(pre_grasp_positions)
-          time.sleep(0.1)
-          self.arm_goHome()
-          time.sleep(0.1)
           return xarm_vis_graspResponse(xarm_vis_graspResponse.SUCCESS)       # 执行完成
         else:
           rospy.logerr('Mechanical arm not reachable') 
