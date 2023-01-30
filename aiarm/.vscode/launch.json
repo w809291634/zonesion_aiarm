@@ -1,0 +1,47 @@
+{
+    "configurations": [
+      /**************catkin_make release version*************/
+      {
+        "name": "run release",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/../../devel/lib/aiarm/aiarm_detection",
+        "args": ["-r", "-debug"],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}/../../devel/lib/aiarm",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "gdb",
+        "setupCommands": [
+            {
+                "description": "为 gdb 启用整齐打印",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            }
+        ],
+        "preLaunchTask": "catkin_make release"
+      },
+      /**************catkin_make debug version*************/
+      {
+        "name": "run debug",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/../../devel/lib/aiarm/aiarm_detection",
+        "args": ["-r", "-debug"],
+        "stopAtEntry": true,
+        "cwd": "${workspaceFolder}/../../devel/lib/aiarm",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "gdb",
+        "setupCommands": [
+          {
+              "description": "为 gdb 启用整齐打印",
+              "text": "-enable-pretty-printing",
+              "ignoreFailures": true
+          }
+        ],
+        "preLaunchTask": "catkin_make debug"
+      }
+
+    ]
+  }
