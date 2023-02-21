@@ -19,10 +19,11 @@ namespace Aiarm{
   {
     private:
       char g_open;        // 设置机械臂夹具
-      char gripper_ty;
-      char arm_debug;
+      char gripper_ty=1;
+      char arm_debug=2;
       std::string PLANNING_GROUP = "manipulator";
-      moveit::planning_interface::MoveGroupInterface arm(PLANNING_GROUP);
+      // moveit::planning_interface::MoveGroupInterface arm(PLANNING_GROUP);
+      moveit::planning_interface::MoveGroupInterface arm_move_group{PLANNING_GROUP};
 
     public:
       arm(char g_open,char gripper_ty=0,char arm_debug=0);

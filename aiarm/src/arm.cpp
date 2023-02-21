@@ -17,7 +17,7 @@
 
 Aiarm::arm::arm(char g_open,char gripper_ty,char arm_debug):g_open(g_open),gripper_ty(gripper_ty),arm_debug(arm_debug)
 {
-  static const std::string PLANNING_GROUP = "manipulator";
+  // static const std::string PLANNING_GROUP = "manipulator";
 
 }
 
