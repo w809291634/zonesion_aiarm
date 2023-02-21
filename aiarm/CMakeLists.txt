@@ -11,8 +11,18 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   message_generation
+  moveit_ros_planning_interface     # moveit规划接口
 )
+
 find_package(OpenCV REQUIRED)
+find_package(Eigen3 REQUIRED)
+if((Eigen3_FOUND) AND (DEFINED EIGEN3_INCLUDE_DIR))
+ message(STATUS "Found Eigen3: " ${EIGEN3_INCLUDE_DIR})
+ INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
+else()
+ message(FATAL_ERROR "EIGEN3 not found.")
+endif()
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -123,10 +133,11 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-include
+  SYSTEM 
   ${catkin_INCLUDE_DIRS}
   include
   include/obj_detection_pb/
+  ${EIGEN_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -143,11 +154,11 @@ include
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(
-  ${PROJECT_NAME}_detection src/obj_detection_pb/detection.cpp)
-target_link_libraries(${PROJECT_NAME}_detection
-  ${catkin_LIBRARIES}  ${OpenCV_LIBS}
-)
+  ${PROJECT_NAME}_detection src/arm.cpp)
 
+target_link_libraries(${PROJECT_NAME}_detection
+  ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS}  ${Eigen3_LIBS} 
+)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

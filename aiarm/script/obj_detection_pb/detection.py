@@ -72,7 +72,7 @@ def trafficdetect(fram):                #交通标志检测
     
     
 if __name__ == '__main__':
-    cap = cv2.VideoCapture(4)
+    cap = cv2.VideoCapture(0)
     _, first_img = cap.read()
     rows, cols, _ = first_img.shape
     print(rows, cols, _ )

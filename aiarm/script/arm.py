@@ -189,8 +189,8 @@ class Arm(object):
     def setGripperJoint(self,value):
         '''
             value :设置夹具角度
-            远程控制：app-->arm_client-->arm_service-->gripper_arrive_err判断到位
-            小车控制：app-->setGripperJoint-->gripper_arrive_err判断到位
+            远程控制:app-->arm_client-->arm_service-->gripper_arrive_err判断到位
+            小车控制:app-->setGripperJoint-->gripper_arrive_err判断到位
             gripper_arrive_err最终都在小车端设置
         '''
         if self.xarm=="varm":
